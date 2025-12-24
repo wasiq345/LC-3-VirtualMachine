@@ -9,7 +9,7 @@ class VirtualMachine{
     bool flag[3];
     bool &N = flag[0]; bool &P = flag[1]; bool &Z = flag[2];
     uint16_t pc; 
-    uint16_t currentAddress;
+    uint16_t IR;
 
     enum opcode{
         ADD, 
@@ -17,7 +17,11 @@ class VirtualMachine{
         LDI,
         LDR,
         JMP,
+        JSR,
+        BR,
         ST,
+        STI,
+        STR,
         LD,
         LEA,
         TRAP,
@@ -30,12 +34,12 @@ class VirtualMachine{
     void UpdateFlags(uint16_t &r);
 
     public:
-    VirtualMachine() : running(false), pc(0) {for(int i = 0; i<3;i++) flag[i] = false;}
+    VirtualMachine() : running(false), pc(0x3000) {for(int i = 0; i<3;i++) flag[i] = false;}
 
     void run();
     void loadProgram();
 
 
     uint16_t read(uint16_t &address);
-    uint16_t write(uint16_t &address, uint16_t data);
+    void write(uint16_t &address, uint16_t data);
 };
