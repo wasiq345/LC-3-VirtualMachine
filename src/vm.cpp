@@ -1,4 +1,5 @@
 #include "../include/vm.h"
+uint16_t sign_extend(uint16_t x, int bit_count);
 
 void VirtualMachine::fetch()
 {
@@ -127,9 +128,68 @@ void VirtualMachine::decode()
         break;
 
     case opcode::TRAP:
+            Reg[7] = pc;
+        switch(IR & 0xff)
+        {
+            case TrapCode::TRAP_GETC:
+                Reg[0] = (uint16_t)getchar();      // by default reg 0 stores the character input
+                UpdateFlags(Reg[0]);
+            break;
+
+            case TrapCode::TRAP_OUT:
+                char c = (char)Reg[0];
+                std :: cout << c;
+            break;
+
+            case TrapCode::TRAP_IN:
+               std :: cout << "Enter a character: ";
+               Reg[0] = (uint16_t)getchar();
+               UpdateFlags(Reg[0]);
+            break;
+
+            case TrapCode::TRAP_HALT:
+                std :: cout << "Program exited";
+                running = false;
+            break;
+
+            case TrapCode::TRAP_PUTS:
+                uint16_t* firstChar = memory + Reg[0];
+                while(*firstChar != 0x0000)
+                {
+                    std :: cout << char(*firstChar);
+                    firstChar++;
+                }
+                break;
+
+            case TrapCode::TRAP_PUTSP:
+                uint16_t* firstChar = memory + Reg[0];
+                while(*firstChar != 0x0000)
+                {
+                    char a = (char)(*firstChar & 0xff);
+                    std :: cout << a;
+                    char b = (char)(*firstChar >> 8);         
+                    if(b) std :: cout << b;            /*if string odd e.g wasiq = wa will go to one memory loc,
+                                                        si will go to second memory loc, q will go to third memory loc
+                                                        but bcs one memory location(16 bits) contain two characters 
+                                                        (0-7) first character, (8-15) second character. (bits 8-15)
+                                                        will be empty*/
+                    firstChar++;
+                }
+            break;
+
+        }
+        break;
+
+    case opcode::RET:
+        pc = Reg[7];
         break;
 
     case opcode::LDR:
+        uint16_t dr = (IR >> 9) & 0x7;
+        uint16_t baseR = (IR >> 6) & 0x7;
+        uint16_t offset = sign_extend(IR & 0x3f, 6);
+        uint16_t address = Reg[baseR] + offset;
+        Reg[dr] = read(address);
         break;
     
     default:
@@ -144,8 +204,7 @@ void VirtualMachine :: execute()
 
 uint16_t VirtualMachine ::read(uint16_t &address)
 {
-   uint16_t readAddress = memory[pc];
-   pc++;
+   uint16_t readAddress = memory[address];
    return readAddress;
 }
 
