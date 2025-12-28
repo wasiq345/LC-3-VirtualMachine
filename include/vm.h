@@ -1,5 +1,6 @@
 #include<iostream>
 #include<cstdint>
+#include<vector>
 const uint16_t MAX_MEMORY = 1 << 16;
 
 class VirtualMachine{
@@ -12,21 +13,22 @@ class VirtualMachine{
     uint16_t IR;
 
     enum opcode{
-        ADD, 
-        AND,
-        LDI,
-        LDR,
-        JMP,
-        JSR,
-        BR,
-        ST,
-        STI,
-        STR,
-        LD,
-        LEA,
-        TRAP,
-        NOT,
-        RET,
+        BR = 0,
+        ADD,    
+        LD,     
+        ST,    
+        JSR,    
+        AND,    
+        LDR,    
+        STR,    
+        RTI,    
+        NOT,  
+        LDI,    
+        STI,    
+        JMP,    
+        RES,    
+        LEA,    
+        TRAP    
     };
 
     enum TrapCode{
@@ -39,15 +41,14 @@ class VirtualMachine{
     };
 
     void fetch();
-    void decode();
-    void execute();
+    void decodeAndExecute();
     void UpdateFlags(uint16_t &r);
 
     public:
-    VirtualMachine() : running(false), pc(0x3000) {for(int i = 0; i<3;i++) flag[i] = false;}
+    VirtualMachine() : running(false) {for(int i = 0; i<3;i++) flag[i] = false;}
 
     void run();
-    void loadProgram();
+    void loadProgram(std::vector<uint16_t> prog);
 
 
     uint16_t read(uint16_t &address);

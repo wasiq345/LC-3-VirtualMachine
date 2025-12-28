@@ -7,13 +7,14 @@ void VirtualMachine::fetch()
     pc++;
 }
 
-void VirtualMachine::decode()
+void VirtualMachine::decodeAndExecute()
 {
     uint16_t opcode = IR >> 12;    // 1111000110101011   , 7 = 0111
 
     switch (opcode)
     {
     case opcode::ADD:
+    {
         uint16_t dr = (IR >> 9 ) & 0x7;
         uint16_t sr= (IR >> 6)  & 0x7;
         uint16_t immi = (IR >> 5) & 0x1;
@@ -28,16 +29,20 @@ void VirtualMachine::decode()
         }
         UpdateFlags(Reg[dr]);
         break;
+    }
 
     case opcode::LDI:
+    {
         uint16_t dr = (IR >> 9 ) & 0x7;
         uint16_t offset = sign_extend(IR  & 0x1FF, 9);
 
         Reg[dr] = memory[memory[offset] + pc];
         UpdateFlags(Reg[dr]);
         break;
+    }
 
     case opcode::AND:
+    {
         uint16_t dr = (IR >> 9) & 0x7;
         uint16_t sr1 = (IR >> 6) & 0x7;
         uint16_t immi = (IR >> 5) & 0x1;
@@ -52,15 +57,19 @@ void VirtualMachine::decode()
 
         UpdateFlags(Reg[dr]);
         break;
+    }
 
      case opcode::NOT:
+     {
         uint16_t dr = (IR >> 9) & 0x7;
         uint16_t sr = (IR >> 6) & 0x7;
         Reg[dr] = ~Reg[sr];
         UpdateFlags(Reg[dr]);
         break;
+     }
 
     case opcode::BR:
+    {
         uint16_t flags = (IR >> 9) & 0x7;
         bool Nflag = flags & 0x4 == 4 ? true : false;   // 0000 0000 0000 0100
         bool Zflag = flags & 0x2 == 2 ? true : false;
@@ -71,13 +80,17 @@ void VirtualMachine::decode()
             pc += offset;
         } 
         break;
+    }
 
     case opcode::JMP:
+    {
         uint16_t baseR = (IR >> 6) & 0x7;
         pc = Reg[baseR];
         break;
+    }
 
     case opcode::JSR:
+    {
         uint16_t notLabel = IR >> 11 & 0x1;
         Reg[7] = pc;
         if(notLabel == 1){
@@ -89,70 +102,87 @@ void VirtualMachine::decode()
             pc = Reg[baseR];
         }
     break;
-
+    }
     case opcode::LD:
+    {
         uint16_t offset = sign_extend(IR & 0x1ff, 9);
         uint16_t dr = (IR >> 9) & 0x7;
         Reg[dr] = memory[pc + offset];
         UpdateFlags(Reg[dr]);
         break; 
-    
+    }
     
     case opcode::LEA:
+    {
         uint16_t offset = sign_extend(IR & 0x1ff, 9);
         uint16_t dr = (IR >> 9) & 0x7;
         Reg[dr] = pc + offset;
         UpdateFlags(Reg[dr]); 
         break;
-
+    }
     case opcode::ST:
+    {
         uint16_t offset = sign_extend(IR & 0x1ff, 9);
         uint16_t sr = (IR >> 9) & 0x7;
         uint16_t address = offset + pc;
         write(address, Reg[sr]);
         break;
-
+    }
     case opcode::STI:
+    {   
         uint16_t offset = sign_extend(IR & 0x1ff, 9);
         uint16_t sr = (IR >> 9) & 0x7;
         uint16_t address = offset + sr;
         write(address, Reg[sr]);
         break;
+    }
 
     case opcode::STR:
+    {
         uint16_t offset = sign_extend(IR & 0x3f, 6);  // 0000 1111 10 10 1111
         uint16_t baseR = (IR >> 6) & 0x7;
         uint16_t sr = (IR >> 9) & 0x7;
         uint16_t address = Reg[baseR] + offset; 
         write(address, Reg[sr]);
         break;
+    }
 
     case opcode::TRAP:
+    {
             Reg[7] = pc;
         switch(IR & 0xff)
         {
             case TrapCode::TRAP_GETC:
+            {
                 Reg[0] = (uint16_t)getchar();      // by default reg 0 stores the character input
                 UpdateFlags(Reg[0]);
             break;
+            }
 
             case TrapCode::TRAP_OUT:
+            {
                 char c = (char)Reg[0];
                 std :: cout << c;
             break;
+            }
 
             case TrapCode::TRAP_IN:
+            {
                std :: cout << "Enter a character: ";
                Reg[0] = (uint16_t)getchar();
                UpdateFlags(Reg[0]);
             break;
+            }
 
             case TrapCode::TRAP_HALT:
-                std :: cout << "Program exited";
+            {
+                std :: cout << "\nProgram exited";
                 running = false;
             break;
+            }
 
             case TrapCode::TRAP_PUTS:
+            {
                 uint16_t* firstChar = memory + Reg[0];
                 while(*firstChar != 0x0000)
                 {
@@ -160,8 +190,10 @@ void VirtualMachine::decode()
                     firstChar++;
                 }
                 break;
+            }
 
             case TrapCode::TRAP_PUTSP:
+            {
                 uint16_t* firstChar = memory + Reg[0];
                 while(*firstChar != 0x0000)
                 {
@@ -176,30 +208,26 @@ void VirtualMachine::decode()
                     firstChar++;
                 }
             break;
+            }
 
         }
         break;
+    }
 
-    case opcode::RET:
-        pc = Reg[7];
-        break;
 
     case opcode::LDR:
+    {
         uint16_t dr = (IR >> 9) & 0x7;
         uint16_t baseR = (IR >> 6) & 0x7;
         uint16_t offset = sign_extend(IR & 0x3f, 6);
         uint16_t address = Reg[baseR] + offset;
         Reg[dr] = read(address);
         break;
+    }
     
     default:
         break;
     }
-}
-
-void VirtualMachine :: execute()
-{
-
 }
 
 uint16_t VirtualMachine ::read(uint16_t &address)
@@ -238,7 +266,35 @@ void VirtualMachine::run()
     while(running)
     {
         fetch();
-        decode();
-        execute();
+        decodeAndExecute();
     }
+}
+
+uint16_t convertToLittleEndian(uint16_t x)        
+{
+    return (x << 8) | (x >> 8);
+}
+
+void VirtualMachine::loadProgram(std::vector<uint16_t> prog)
+{
+    uint16_t origin = 0x3000;
+    pc = origin;
+
+    for(uint16_t x : prog)
+    {
+        memory[origin] = x;
+        origin++;
+    }
+}
+
+int main()
+{
+    VirtualMachine* lc3 = new VirtualMachine();
+    std::vector<uint16_t> prog = {
+     0x5020, 0x102F, 0x102F, 0x102F, 0x102F, 0x1025, 0xF021, 0xF025
+ };
+    lc3->loadProgram(prog);
+    std :: cout << "-----------------lc3-------------\n";
+    lc3->run();
+    delete lc3;
 }
