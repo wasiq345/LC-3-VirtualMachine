@@ -1,4 +1,4 @@
-# LC-3 Virtual Machine & Graphical Debugger
+# LC-3 Virtual Machine
 
 C++ implementation of the **LC-3 (Little Computer 3)** architecture. This project features a full 16-bit instruction set emulator and memory-mapped I/O.
 
