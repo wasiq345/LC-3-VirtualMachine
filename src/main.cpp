@@ -1,56 +1,62 @@
 #include "../include/vm.h"
+#include <string>
+#include <iostream>
+#include <thread>
+#include <chrono>
+
+struct termios original_tio;
+void disable_input_buffering()
+{
+    tcgetattr(STDIN_FILENO, &original_tio);
+    struct termios new_tio = original_tio;
+    new_tio.c_lflag &= ~ICANON & ~ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
+}
+
+void restore_input_buffering()
+{
+    tcsetattr(STDIN_FILENO, TCSANOW, &original_tio);
+}
+
+void handle_interrupt(int signal)
+{
+    restore_input_buffering();
+    printf("\n");
+    exit(-2);
+}
 
 int main()
 {
-    VirtualMachine* lc3 = new VirtualMachine();
-    //lc3->loadProgramFile("2048.obj");
-//   std::vector<uint16_t> simple_moving = {
-//     // Load VRAM address
-//     0x5020,  // 0x3000: AND R0, R0, #0
-//     0x200C,  // 0x3001: LD R0, VRAM
-    
-//     // Load white color
-//     0x5260,  // 0x3002: AND R1, R1, #0
-//     0x14BF,  // 0x3003: ADD R1, R1, #-1    (R1 = 0xFFFF white)
-    
-//     // Loop: just keep drawing
-//     0x7200,  // 0x3004: STR R1, R0, #0     (Draw)
-//     0x1021,  // 0x3005: ADD R0, R0, #1     (Move)
-//     0x0FFE,  // 0x3006: BRnzp #-2          (Loop)
-    
-//     // Padding
-//     0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-    
-//     // Data
-//     0xC000   // 0x300D: VRAM
-// };
-//     lc3->loadProgramVector(simple_moving);
-    //lc3->run();
+    signal(SIGINT, handle_interrupt);
 
-    
+    std::cout << "\033[1;36m" 
+              << "┌────────────────────────────────────────────┐\n"
+              << "│          LC-3 Virtual Machine              │\n"
+              << "└────────────────────────────────────────────┘\033[0m\n\n";
 
-     lc3->write(0xC000, 0x7C00);  // Red
-    lc3->write(0xC001, 0x03E0);  // Green
-    lc3->write(0xC002, 0x001F);  // Blue
-    lc3->write(0xC003, 0x7FFF);  // white
-
-    InitWindow(512, 512, "LC-3 VM");
-    SetTargetFPS(60);
-
-
-   while(!WindowShouldClose())
-{
-    for(int i = 0; i < 10 && lc3->getRunning(); i++)
-    {
-        lc3->runStep();
+    std::cout << "Loading program... ";
+    const char* spinner = "|/-\\";
+    for (int i = 0; i < 12; ++i) {
+        std::cout << "\b" << spinner[i % 4] << std::flush;
+        std::this_thread::sleep_for(std::chrono::milliseconds(80));
     }
-    
-    BeginDrawing();
-    ClearBackground(BLACK);
-    lc3->renderScreen();  // Only draws non-black pixels
-    EndDrawing();
-}
+    std::cout << "\b \n\n";
 
-   delete lc3;
+    disable_input_buffering();
+
+    VirtualMachine* lc3 = new VirtualMachine();
+
+    std::cout << "\033[1;32mProgram loaded successfully\033[0m\n"
+              << "Starting execution...\n\n";
+
+    lc3->loadProgramFile("name-out.obj");
+    lc3->run();
+
+    std::cout << "\n\033[1;33m────────────────────────────────────────────\033[0m\n"
+              << "\033[1;32mExecution completed\033[0m\n";
+
+    restore_input_buffering();
+    delete lc3;
+
     return 0;
 }

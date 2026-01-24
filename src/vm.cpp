@@ -1,20 +1,6 @@
 #include "../include/vm.h"
 
 
-struct termios original_tio;
-
-void disable_input_buffering()
-{
-    tcgetattr(STDIN_FILENO, &original_tio);
-    struct termios new_tio = original_tio;
-    new_tio.c_lflag &= ~ICANON & ~ECHO;
-    tcsetattr(STDIN_FILENO, TCSANOW, &new_tio);
-}
-
-void restore_input_buffering()
-{
-    tcsetattr(STDIN_FILENO, TCSANOW, &original_tio);
-}
 
 uint16_t checkKey()
 {
@@ -59,7 +45,6 @@ void VirtualMachine::decodeAndExecute()
             Reg[dr] = Reg[sr] + Reg[sr2];
         }
         UpdateFlags(dr);
-        //std :: cout << "Add called\n";
         break;
     }
 
@@ -101,16 +86,20 @@ void VirtualMachine::decodeAndExecute()
         UpdateFlags(dr);
         break;
      }
-
     case opcode::BR:
     {
-        uint16_t flags = (IR >> 9) & 0x7;    
-        uint16_t offset = sign_extend(IR & 0x1ff, 9);
-        bool should_branch = (flags & 0x4 && *N) || (flags & 0x2 && *Z) || (flags & 0x1 && *P);
-        if(should_branch)
+        uint16_t cond = (IR >> 9) & 0x7;          
+
+        bool take_branch =
+            ((cond & 0x4) && *N) ||               
+            ((cond & 0x2) && *Z) ||               
+            ((cond & 0x1) && *P);                 
+
+        if (take_branch)
         {
+            uint16_t offset = sign_extend(IR & 0x1FF, 9);
             pc += offset;
-        } 
+        }
         break;
     }
 
@@ -188,7 +177,6 @@ void VirtualMachine::decodeAndExecute()
             case TrapCode::TRAP_GETC:
             {
                 Reg[0] = (uint16_t)getchar();      // by default reg 0 stores the character input
-                std :: cin.ignore();
                 uint16_t x = 0;
                 UpdateFlags(x);
             break;
@@ -383,25 +371,55 @@ void VirtualMachine :: loadProgramVector(const std :: vector<uint16_t> &prog)
     }
 }
 
-void VirtualMachine :: renderScreen()
-{
-     const int scale = 5;
-    for(int y = 0; y < 128; y++)
-    {
-        for(int x = 0; x < 128; x++)
-        {
-            uint16_t index = 0xC000 + (y*128 + x);
-            if(index >= 65536) continue;
-            uint16_t color16 = memory[index];
-            if(color16 == 0) continue;
-            //if (x == 0 && y == 0) printf("Looking at VRAM Start: 0x%04X\n", address);
 
-            unsigned char r = (((color16 >> 10) & 0x1F) * 8);
-            unsigned char g = (((color16 >> 5) & 0x1F) * 8);
-            unsigned char b = (((color16 >> 0) & 0x1F) * 8);
 
-            DrawRectangle(x*scale, y*scale, scale, scale, {r, g, b, 255});
-        }
-    }
-}
+//                          The below functions arent completed.
+
+// void VirtualMachine :: renderScreen()
+// {
+//      const int scale = 5;
+//     for(int y = 0; y < 128; y++)
+//     {
+//         for(int x = 0; x < 128; x++)
+//         {
+//             uint16_t index = 0xC000 + (y*128 + x);
+//             if(index >= 65536) continue;
+//             uint16_t color16 = memory[index];
+//             if(color16 == 0) continue;
+
+//             unsigned char r = (((color16 >> 10) & 0x1F) * 8);
+//             unsigned char g = (((color16 >> 5) & 0x1F) * 8);
+//             unsigned char b = (((color16 >> 0) & 0x1F) * 8);
+
+//             DrawRectangle(x*scale, y*scale, scale, scale, {r, g, b, 255});
+//         }
+//     }
+// }
+
+
+// void VirtualMachine::drawDebugger() {
+//     int startX = 128; // Position it to the right of your 128x128 screen
+//     int startY = 20;
+//     int lineHeight = 25;
+//     // Background for Debugger
+//     DrawRectangle(startX - 10, 0, 200, 700, {30, 30, 30, 200});
+//     DrawText("--- DEBUGGER ---", startX, startY, 20, RAYWHITE);
+
+//     // Display PC and IR
+//     DrawText(TextFormat("PC: 0x%04X", pc), startX, startY + (lineHeight * 2), 18, YELLOW);
+//     DrawText(TextFormat("IR: 0x%04X", IR), startX, startY + (lineHeight * 3), 18, ORANGE);
+
+//     // Display Registers R0 - R7
+//     for (int i = 0; i < 8; i++) {
+//         DrawText(TextFormat("R%d: 0x%04X", i, Reg[i]), startX, startY + (lineHeight * (5 + i)), 18, LIGHTGRAY);
+//     }
+
+//     // Display Condition Codes
+//     DrawText("Flags:", startX, startY + (lineHeight * 14), 18, RAYWHITE);
+//     DrawText(TextFormat("N: %d", *N), startX, startY + (lineHeight * 15), 18, *N ? RED : DARKGRAY);
+//     DrawText(TextFormat("Z: %d", *Z), startX, startY + (lineHeight * 16), 18, *Z ? RED : DARKGRAY);
+//     DrawText(TextFormat("P: %d", *P), startX, startY + (lineHeight * 17), 18, *P ? RED : DARKGRAY);
+    
+//     DrawText(running ? "STATUS: RUNNING" : "STATUS: HALTED", startX, startY + (lineHeight * 19), 16, running ? GREEN : RED);
+// }
     

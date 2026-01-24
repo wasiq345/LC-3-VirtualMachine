@@ -11,7 +11,6 @@
 #include <sys/termios.h>
 #include <sys/mman.h>
 #include <vector>
-#include"raylib.h"
 const size_t MAX_MEMORY = 1 << 16;
 
 class VirtualMachine{
@@ -80,6 +79,12 @@ class VirtualMachine{
         }
     }
 
+
+    ~VirtualMachine()
+    {
+        delete[] memory;
+    }
+
     void run();
     void runStep();
     void loadProgramFile(const std :: string& filename);
@@ -88,11 +93,13 @@ class VirtualMachine{
 
     uint16_t read(uint16_t address);
     public: void write(uint16_t address, uint16_t data);
+    void renderScreen();                        // not fully implemented yet
+    void drawDebugger();                        // NOt fully implemented yet
 
-    void renderScreen();
-
-    ~VirtualMachine()
-    {
-        delete[] memory;
-    }
+    uint16_t getReg(int i) { return Reg[i]; }
+    uint16_t getPC() { return pc; }
+    uint16_t getIR() { return IR; }
+    bool getFlagN() { return *N; }
+    bool getFlagZ() { return *Z; }
+    bool getFlagP() { return *P; }
 };
